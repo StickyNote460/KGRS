@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MOOC知识图谱系统{% endblock %}</title>
+    <style>
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .nav { margin-bottom: 20px; padding: 10px; background: #f8f9fa; }
+        .object-card { border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin: 10px 0; }
+        .relation-list { list-style-type: none; padding-left: 20px; }
+        .relation-item { margin: 5px 0; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="{% url 'recommender:home' %}" style="text-decoration: none; color: #0d6efd;">首页</a> |
+        <a href="{% url 'admin:index' %}" target="_blank">管理后台</a>
+    </nav>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

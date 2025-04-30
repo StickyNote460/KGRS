@@ -1,0 +1,32 @@
+{% extends "recommender/base.html" %}
+
+{% block title %}知识图谱首页{% endblock %}
+
+{% block content %}
+<h2>课程列表</h2>
+<div class="course-list">
+    {% for course in courses %}
+    <div class="object-card">
+        <h3><a href="{% url 'recommender:course-detail' course.id %}">{{ course.name }}</a></h3>
+        <p>{{ course.about|truncatechars:120 }}</p>
+        <div class="meta-info">
+            <span>关联知识点：{{ course.concepts.count }} 个</span>
+        </div>
+    </div>
+    {% empty %}
+    <div class="object-card">暂无课程数据</div>
+    {% endfor %}
+</div>
+
+<h2>用户列表</h2>
+<div class="user-list">
+    {% for user in users %}
+    <div class="object-card">
+        <h4><a href="{% url 'recommender:user-profile' user.id %}">{{ user.name }}</a></h4>
+        <p>已学习课程：{{ user.courses.count }} 门</p>
+    </div>
+    {% empty %}
+    <div class="object-card">暂无用户数据</div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "recommender/base.html" %}
+
+{% block title %}{{ course.name }} - 课程详情{% endblock %}
+
+{% block content %}
+<div class="object-card">
+    <h1>{{ course.name }}</h1>
+    <div class="course-meta">
+        <p class="text-muted">课程ID: {{ course.id }}</p>
+        <h4>课程简介</h4>
+        <p>{{ course.about }}</p>
+    </div>
+
+    <h3>关联知识点</h3>
+    <ul class="relation-list">
+        {% for relation in course.courseconcept_set.all %}
+        <li class="relation-item">
+            {{ relation.concept.name }}
+            <span class="badge">权重 {{ relation.weight }}</span>
+            <span class="text-muted">（{{ relation.concept.field.name }}）</span>
+        </li>
+        {% empty %}
+        <li class="relation-item">暂无关联知识点</li>
+        {% endfor %}
+    </ul>
+
+    <h3>先修要求</h3>
+    <ul class="relation-list">
+        {% for prereq in course.prerequisite_dependencies.all %}
+        <li class="relation-item">
+            {{ prereq.prerequisite.name }} → {{ prereq.target.name }}
+        </li>
+        {% empty %}
+        <li class="relation-item">暂无先修要求</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
