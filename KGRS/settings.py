@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 
+from celery.schedules import crontab
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -37,7 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'recommender.apps.RecommenderConfig',
+    'recommender.apps.RecommenderConfig', #格式：'应用名.apps.配置函数名'
+                                            # 可以按照这个路径找到此函数
 ]
 
 MIDDLEWARE = [
@@ -78,6 +81,12 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        #为解决SQLite参数限制，使得calculate_and_import_newfield.py运行，添加配置
+        # 'OPTIONS': {
+        #     'timeout': 30,
+        #     # 增大缓存尺寸（单位：页，每页约 1KB）
+        #     'cache_size': 10000,
+        # }
     }
 }
 
@@ -123,16 +132,45 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+#########个人添加
 # Celery配置
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
-CELERY_TIMEZONE = 'Asia/Shanghai'
-CELERY_BEAT_SCHEDULE = {
+CELERY_BROKER_URL = 'redis://localhost:6379/0' #指定celery的消息代理（任务队列服务器地址）
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'#指定任务结果的存储后端
+'''
+redis://：协议，表示使用 Redis 作为消息代理。
+localhost：Redis 服务器地址（本地 IP）。
+6379：Redis 默认端口号。
+/0：Redis 数据库编号（0-15），用于隔离不同应用的队列。
+/0和/1表示使用 Redis 的不同数据库（类似命名空间），避免任务队列与结果存储冲突。
+'''
+CELERY_TIMEZONE = 'Asia/Shanghai' #遵循时区 规范：必须使用 IANA 时区数据库支持的名称（如 Asia/Shanghai）
+CELERY_BEAT_SCHEDULE = { #定时任务配置
     'update_metrics': {
-        'task': 'recommender.tasks.update_metrics',
-        'schedule': 3600,  # 每小时执行一次
+        'task': 'recommender.tasks.update_metrics', #任务的python路径
+        'schedule': 3600,  # 任务执行频率，每小时执行一次
     },
+    'nightly_kg_update': {
+        'task': 'recommender.features.pipelines.kg_pipeline.full_kg_feature_pipeline',
+        'schedule': crontab(hour=3, minute=0),  # 每天凌晨3点
+    },
+    'hourly_popularity': {
+        'task': 'recommender.tasks.update_course_popularity',
+        'schedule': crontab(minute=0),  # 每小时
+         }
 }
+'''
+配置格式：
+CELERY_BEAT_SCHEDULE = {
+    '任务唯一标识': {
+        'task': '应用路径.任务函数',  # 必须正确
+        'schedule': 时间间隔或 crontab对象,
+        # 可选参数（如 args、kwargs、options）
+    }
+}
+核心规则：
+唯一性：每个任务的键名（如 'update_metrics'）必须唯一。
+路径正确：task 字段必须指向实际存在的可导入函数。
+'''
 
 # #文心一言给的配置
 # CELERY_BROKER_URL = 'redis://localhost:6379/0'
@@ -141,3 +179,21 @@ CELERY_BEAT_SCHEDULE = {
 # CELERY_TASK_SERIALIZER = 'json'
 # CELERY_RESULT_SERIALIZER = 'json'
 # CELERY_TIMEZONE = 'UTC'
+
+#日志
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': 'import_errors.log',
+        },
+    },
+    'loggers': {
+        'import_video_names': {
+            'handlers': ['file'],
+            'level': 'WARNING',
+        },
+    },
+}

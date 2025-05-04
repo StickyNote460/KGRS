@@ -15,3 +15,23 @@ def update_metrics():
     for cc in CourseConcept.objects.all():
         cc.normalized_weight = cc.intelligent_weight
         cc.save()
+
+#5.2 20:19新增
+# recommender/tasks.py
+
+# from celery import shared_task
+# from .kg.build_kg import KnowledgeGraph
+#
+# @shared_task
+# def rebuild_kg():
+#     """重建知识图谱"""
+#     kg = KnowledgeGraph()
+#     kg.build()
+#     kg.save_to_disk()
+# @shared_task
+# def update_course_popularity():
+#     """更新课程热度"""
+#     from .models import Course
+#     for course in Course.objects.all():
+#         course.popularity = course.usercourse_set.count()
+#         course.save(update_fields=['popularity'])

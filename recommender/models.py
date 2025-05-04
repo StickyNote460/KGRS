@@ -108,36 +108,34 @@ class User(models.Model):
         verbose_name = '用户信息'
         verbose_name_plural = '用户信息'
 
+    # 在User模型中添加方法
+    def calculate_learning_style(self):
+        """优化后的学习风格计算方法（使用prefetch_related）"""
+        from collections import defaultdict
 
-# 在User模型中添加方法
-def calculate_learning_style(self):
-    """优化后的学习风格计算方法（使用prefetch_related）"""
-    from collections import defaultdict
+        # 通过prefetch_related一次性获取所有关联数据
+        user_courses = self.usercourse_set.select_related('course').prefetch_related(
+            'course__concepts__field'
+        )
 
-    # 通过prefetch_related一次性获取所有关联数据
-    user_courses = self.usercourse_set.select_related('course').prefetch_related(
-        'course__concepts__field'
-    )
+        field_counter = defaultdict(int)
+        total = 0
 
-    field_counter = defaultdict(int)
-    total = 0
+        # 遍历预取的数据（无额外查询）
+        for user_course in user_courses:
+            # 获取课程关联的所有概念及其领域
+            concepts = user_course.course.concepts.all()
+            for concept in concepts:
+                if concept.field:
+                    field_name = concept.field.name
+                    field_counter[field_name] += 1
+                    total += 1
 
-    # 遍历预取的数据（无额外查询）
-    for user_course in user_courses:
-        # 获取课程关联的所有概念及其领域
-        concepts = user_course.course.concepts.all()
-        for concept in concepts:
-            if concept.field:
-                field_name = concept.field.name
-                field_counter[field_name] += 1
-                total += 1
-
-    # 计算概率分布（保持原始逻辑）
-    return {
-        field: (count / total) if total > 0 else 0.0
-        for field, count in field_counter.items()
-    }
-
+        # 计算概率分布（保持原始逻辑）
+        return {
+            field: (count / total) if total > 0 else 0.0
+            for field, count in field_counter.items()
+        }
 
 
 # 以下是需要补充的关系表模型

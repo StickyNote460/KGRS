@@ -26,3 +26,19 @@ def user_profile(request, pk):
     return render(request, 'recommender/user_profile.html', {
         'user': user
     })
+
+
+# recommender/views.py
+from .recommendations.graph_based.path_finder import LearningPathRecommender
+
+#5.2 20:24
+def learning_path_view(request, course_id):
+    user = request.user
+    target_course = get_object_or_404(Course, id=course_id)
+    recommender = LearningPathRecommender()
+    path = recommender.recommend(user, target_course)
+
+    return render(request, 'recommender/path.html', {
+        'course': target_course,
+        'path': Course.objects.filter(id__in=path)
+    })
