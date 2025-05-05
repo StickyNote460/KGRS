@@ -44,6 +44,20 @@ class Concept(models.Model):
         verbose_name='被依赖次数',
         help_text='被其他概念作为直接先修条件的次数（实时统计）'
     )
+    entropy_weight = models.FloatField(
+        default=0.0,
+        verbose_name='熵权法权重',
+        help_text='通过熵权法计算的客观权重（自动更新）',
+        null = False,  # 明确禁止NULL
+        blank = True  # 允许表单留空
+    )
+    topsis_score = models.FloatField(
+        default=0.0,
+        verbose_name='TOPSIS评分',
+        help_text='基于熵权的TOPSIS综合评分（0-1）',
+        null = False,  # 明确禁止NULL
+        blank = True  # 允许表单留空
+    )
     # 新增字段结束 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     class Meta:
