@@ -29,13 +29,13 @@ def user_profile(request, pk):
 
 
 # recommender/views.py
-from .recommendations.graph_based.path_finder import LearningPathRecommender
+from .recommendations.graph_based.path_finder import PathFinder
 
 #5.2 20:24
 def learning_path_view(request, course_id):
     user = request.user
     target_course = get_object_or_404(Course, id=course_id)
-    recommender = LearningPathRecommender()
+    recommender = PathFinder()
     path = recommender.recommend(user, target_course)
 
     return render(request, 'recommender/path.html', {

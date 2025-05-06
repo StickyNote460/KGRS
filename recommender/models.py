@@ -1,8 +1,5 @@
 from django.db import models
-from django.db.models import Count
-from django.db.models.signals import post_save, post_delete
-from django.dispatch import receiver
-import math
+
 '''
 save()：保存对象到数据库。
 delete()：从数据库中删除对象。
@@ -92,7 +89,17 @@ class Course(models.Model):
         verbose_name='课程难度',
         help_text='基于关联概念平均深度计算的难度系数（周更新）'
     )
+    abstract_pre_courses = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="从课程先修字段中提取的候选先修课程列表"
+    )
 
+    match_pre_courses = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="根据候选课程匹配得到的最合适的先修课程列表"
+    )
     # 新增字段结束 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     class Meta:
@@ -115,42 +122,15 @@ class User(models.Model):
         verbose_name='学习风格向量',
         help_text='用户历史学习领域分布的概率向量（格式：{"领域名": 概率值}）'
     )
+    learned_courses = models.JSONField(default=list, blank=True, help_text="用户已学习课程ID列表")
+    enroll_time = models.JSONField(default=list, blank=True, help_text="用户课程的入学时间列表")
+    learned_concepts = models.JSONField(default=list, blank=True, help_text="用户已掌握概念ID列表")
 
     # 新增字段结束 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     class Meta:
         db_table = 'user'
         verbose_name = '用户信息'
         verbose_name_plural = '用户信息'
-
-    # 在User模型中添加方法
-    def calculate_learning_style(self):
-        """优化后的学习风格计算方法（使用prefetch_related）"""
-        from collections import defaultdict
-
-        # 通过prefetch_related一次性获取所有关联数据
-        user_courses = self.usercourse_set.select_related('course').prefetch_related(
-            'course__concepts__field'
-        )
-
-        field_counter = defaultdict(int)
-        total = 0
-
-        # 遍历预取的数据（无额外查询）
-        for user_course in user_courses:
-            # 获取课程关联的所有概念及其领域
-            concepts = user_course.course.concepts.all()
-            for concept in concepts:
-                if concept.field:
-                    field_name = concept.field.name
-                    field_counter[field_name] += 1
-                    total += 1
-
-        # 计算概率分布（保持原始逻辑）
-        return {
-            field: (count / total) if total > 0 else 0.0
-            for field, count in field_counter.items()
-        }
-
 
 # 以下是需要补充的关系表模型
 class ConceptFieldRelation(models.Model):
@@ -214,32 +194,9 @@ class CourseConcept(models.Model):
         unique_together = (('course', 'concept'),)
         verbose_name = '课程-概念关系'
         verbose_name_plural = '课程-概念关系'
-    #新增方法
-    @property
-    def intelligent_weight(self):
-        """智能权重计算（不存储，动态计算）"""
-        # 基础指标
-        base = 0.3 * self.concept.dependency_count + 0.2 * (1 / (self.concept.depth + 1))
-
-        # 课程相关性（TF-IDF）
-        total_concepts = self.course.concepts.count()
-        concept_freq = Concept.objects.filter(
-            courseconcept__course=self.course,
-            id=self.concept.id
-        ).count()
-        tf = concept_freq / total_concepts
-
-        idf = math.log(Course.objects.count() / (1 + Concept.objects.filter(
-            courseconcept__concept=self.concept
-        ).count()))
-
-        # 用户行为因子
-        completion_rate = UserCourse.objects.filter(
-            course=self.course,
-            user__usercourse__isnull=False
-        ).count() / max(1, UserCourse.objects.filter(course=self.course).count())
-
-        return base * (tf * idf) * (1 + completion_rate)
+        indexes = [
+            models.Index(fields=['course'], name='idx_courseconcept_course'),  # 关键点2：显式命名索引
+        ]
 
 class UserCourse(models.Model):
     """用户-课程关系表（带时间戳）"""
@@ -252,12 +209,9 @@ class UserCourse(models.Model):
         db_table = 'user_course'
         ordering = ['order']
         unique_together = (('user', 'course'),)
-#
-# # 信号处理（用户选课时更新）
-# @receiver(post_save, sender=UserCourse)
-# def update_learning_style(sender, instance, **kwargs):
-#     instance.user.learning_style = instance.user.calculate_learning_style()
-#     instance.user.save()
+        indexes = [
+            models.Index(fields=['user'], name='idx_usercourse_user'),  # 关键点：显式命名索引
+        ]
 
 class PrerequisiteDependency(models.Model):
     """先修依赖关系表（优化版）"""

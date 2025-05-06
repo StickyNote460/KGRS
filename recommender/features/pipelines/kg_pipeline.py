@@ -1,21 +1,40 @@
-# recommender/features/pipelines/kg_pipeline.py
 from celery import shared_task
-from recommender.features.calculators.course_calculators import CourseDifficultyCalculator
-from recommender.features.calculators.concept_calculators import DepthCalculator,ConceptImportanceCalculator
-from recommender.models import Concept, Course
+from django.conf import settings
+from ..calculators import (
+    concept_calculators,
+    course_calculators
+)
+import logging
 
+logger = logging.getLogger(__name__)
 
-@shared_task
-def full_kg_feature_pipeline():
+#支持“增量计算”或“按模块独立调度”
+@shared_task(bind=True)
+def full_kg_feature_pipeline(self):
     """全量特征计算流水线"""
-    # 1. 概念特征
-    for concept in Concept.objects.all():
-        concept.depth = DepthCalculator.calculate_depth(concept)
-        concept.save(update_fields=['depth'])
+    try:
+        logger.info("开始全量知识图谱特征计算流水线...")
 
-    ConceptImportanceCalculator.calculate_normalized_importance()
+        # 概念特征计算
+        logger.info("计算概念深度...")
+        concept_calculators.calculate_concept_depth()
 
-    # 2. 课程特征
-    for course in Course.objects.all():
-        course.difficulty = CourseDifficultyCalculator.calculate_difficulty(course)
-        course.save(update_fields=['difficulty'])
+        logger.info("计算概念被依赖次数...")
+        concept_calculators.calculate_dependency_count()
+
+        logger.info("计算概念熵权TOPSIS分数...")
+        concept_calculators.calculate_entropy_topsis()
+
+        # 课程特征计算
+        logger.info("计算课程难度...")
+        course_calculators.calculate_course_difficulty()
+
+        logger.info("计算课程-概念归一化权重...")
+        course_calculators.calculate_normalized_weights()
+
+        logger.info("全量知识图谱特征计算流水线完成")
+        return {"status": "success"}
+
+    except Exception as e:
+        logger.error(f"知识图谱特征流水线执行失败: {str(e)}")
+        raise self.retry(exc=e, countdown=60, max_retries=3)

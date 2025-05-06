@@ -144,20 +144,15 @@ localhost：Redis 服务器地址（本地 IP）。
 /0和/1表示使用 Redis 的不同数据库（类似命名空间），避免任务队列与结果存储冲突。
 '''
 CELERY_TIMEZONE = 'Asia/Shanghai' #遵循时区 规范：必须使用 IANA 时区数据库支持的名称（如 Asia/Shanghai）
-CELERY_BEAT_SCHEDULE = { #定时任务配置
-    'update_metrics': {
-        'task': 'recommender.tasks.update_metrics', #任务的python路径
-        'schedule': 3600,  # 任务执行频率，每小时执行一次
-    },
-    'nightly_kg_update': {
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'run_full_kg_feature_pipeline_daily': {
         'task': 'recommender.features.pipelines.kg_pipeline.full_kg_feature_pipeline',
-        'schedule': crontab(hour=3, minute=0),  # 每天凌晨3点
+        'schedule': crontab(hour=2, minute=0),  # 每天凌晨2点
     },
-    'hourly_popularity': {
-        'task': 'recommender.tasks.update_course_popularity',
-        'schedule': crontab(minute=0),  # 每小时
-         }
 }
+
 '''
 配置格式：
 CELERY_BEAT_SCHEDULE = {
