@@ -12,29 +12,30 @@ class RecommenderConfig(AppConfig):
 
     def ready(self):
         """正确的缩进（与class块对齐）"""
-        # 添加运行环境判断
-        if not self._is_development_server():
-            print("[正式模式] 注册信号处理器")
-            self._register_signals()
-        else:
-            print("[开发模式] 跳过重复注册")
-
-    def _register_signals(self):
-        """安全的信号注册方法"""
-        #导入recommender.signals模块
-        import recommender.signals
-
-    @classmethod
-    def _is_development_server(cls):
-        """判断是否开发环境"""
-        #通过判断`sys.argv`中是否包含`runserver`命令
-        #在不同环境下执行不同的初始化逻辑
-        '''
-        开发环境跳过注册的原因:
-        问题核心：Django 开发服务器在代码修改后会自动重启，导致：
-        ready() 方法被多次调用
-        信号处理器重复注册
-        同一信号被多次处理
-        '''
-        from sys import argv
-        return 'runserver' in argv
+        pass  # 暂时禁用信号
+    #     # 添加运行环境判断
+    #     if not self._is_development_server():
+    #         print("[正式模式] 注册信号处理器")
+    #         self._register_signals()
+    #     else:
+    #         print("[开发模式] 跳过重复注册")
+    #
+    # def _register_signals(self):
+    #     """安全的信号注册方法"""
+    #     #导入recommender.signals模块
+    #     import recommender.signals
+    #
+    # @classmethod
+    # def _is_development_server(cls):
+    #     """判断是否开发环境"""
+    #     #通过判断`sys.argv`中是否包含`runserver`命令
+    #     #在不同环境下执行不同的初始化逻辑
+    #     '''
+    #     开发环境跳过注册的原因:
+    #     问题核心：Django 开发服务器在代码修改后会自动重启，导致：
+    #     ready() 方法被多次调用
+    #     信号处理器重复注册
+    #     同一信号被多次处理
+    #     '''
+    #     from sys import argv
+    #     return 'runserver' in argv

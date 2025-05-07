@@ -100,6 +100,13 @@ class Course(models.Model):
         blank=True,
         help_text="根据候选课程匹配得到的最合适的先修课程列表"
     )
+
+    mpre_courses_id = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="前继课程ID列表",
+        db_column='mpre_courses_id'  # 显式指定列名
+    )
     # 新增字段结束 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     class Meta:
